@@ -12,6 +12,7 @@ import BookingPage from '../views/BookingPage.vue'
 import UserBookings from '../views/UserBookings.vue'
 import SearchPage from '../views/SearchPage.vue'
 import SummaryPage from '../views/SummaryPage.vue'
+import UserLogin from '../views/UserLogin.vue'
 
 const routes = [
   {
@@ -30,7 +31,12 @@ const routes = [
     component:RegisterPage
   },
   {
-    path:'/login',
+    path:'/login/user',
+    name:'UserLogin',
+    component:UserLogin
+  },
+  {
+    path:'/login/admin',
     name:'LoginPage',
     component:LoginPage
   },

@@ -111,7 +111,7 @@ export default {
 <style>
 .register {
   height:900px;
-  background: url('../assets/coco.jpg'),url('../assets/R.jpg'),url('../assets/venom.jpg');
+  background: url('../assets/rd.jpg'),url('../assets/e.jpg'),url('../assets/atif.jpg');
   background-repeat: no-repeat,no-repeat;
   padding: 15px;
   background-position: right,center,left;

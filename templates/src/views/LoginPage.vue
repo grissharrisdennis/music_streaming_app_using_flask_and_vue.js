@@ -85,7 +85,7 @@ export default {
 <style>
  .login-dark {
   height:800px;
-  background: url('../assets/terminator.jpg'),url('../assets/jones.jpg'),url('../assets/lagaan.jpg');
+  background: url('../assets/yd.jpg'),url('../assets/hj.jpg'),url('../assets/cp.jpeg');
   background-repeat: no-repeat,no-repeat;
   padding: 15px;
   background-position: left,center,right;
