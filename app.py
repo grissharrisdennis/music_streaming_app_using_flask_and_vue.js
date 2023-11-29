@@ -26,7 +26,6 @@ from email import encoders
 from celery.result import AsyncResult
 import matplotlib.pyplot as plt
 from flask_caching import Cache
-import yaml,json
 
 
 app=Flask(__name__)
