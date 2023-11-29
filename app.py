@@ -1,5 +1,5 @@
 from flask import Flask,request,jsonify,send_file
-from flask_restx import Resource,Api
+from flask_restful import Resource,Api
 from flask_sqlalchemy import SQLAlchemy
 from models import User,Role,db,Venue,Show,Show_Venue,Booking,UserRating
 from flask_security import SQLAlchemyUserDatastore,Security,roles_required,auth_token_required
@@ -57,30 +57,7 @@ app.security = Security(app, user_datastore)
 celery = make_celery(app)
 
 
-# @celery.task(name='generate_csv')
-# def generate_csv(venues):
-#     csv_filename = 'venues_details.csv'
-#     venue_id=venues[0]
-#     venue=Venue.query.filter(Venue.venue_id==venue_id).first()
-#     books = Booking.query.filter(Venue.venue_id==venue.venue_id).all()
-#     sum=0
-#     for book in books:
-#         for shows in venue.shows:
-#             if book.show_id == shows.show_id:
-#                 sum+=book.seats
-#             with open(csv_filename, 'w', newline='') as csvfile:
-#                 fieldnames = [venue.name , 'Number of Seats', 'Genre', 'Average Rating','Movie Price','No of Bookings']
-#             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-#             writer.writeheader()
-#             writer.writerow({
-#             'Theater Name': shows.name,
-#             'Number of Seats': venue.capacity,
-#             'Genre': shows.tags,
-#             'Average Rating': shows.rating,
-#             'Movie Price': shows.price,
-#             'No of Bookings':sum,
-#         })
-#     return csv_filename
+
 @celery.task(name='generate_csv')
 def generate_csv(venues):
     csv_filename = 'venues_details.csv'
