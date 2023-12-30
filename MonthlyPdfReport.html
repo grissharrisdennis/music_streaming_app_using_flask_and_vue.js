@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User Bookings PDF Report</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0; /* Reset margin to avoid additional spacing */
+            padding: 0; /* Reset padding to avoid additional spacing */
+        }
+        .navbari h1{
+            margin: 10px 0 10px 160px; /* Adjust margins for better positioning */
+            color: #eee; /* Use consistent color */
+        }
+        .books {
+            margin: 10px 0 10px 50px; /* Adjust margins for better positioning */
+        }
+        .books h3{
+            font-size: 20px;
+        }
+        .books h2{
+            font-size: 30px; /* Adjust font size for better readability */
+            color: #009879; /* Use consistent color */
+        }
+        .navbari{
+            background: #009879;
+            padding: 10px;
+        }
+        .styled-tables {
+            border-collapse: collapse;
+            margin: 0 0 0 50px; /* Adjust margins for better positioning */
+            font-size: 0.9em;
+            font-family: sans-serif;
+            width: 50%;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+        }
+        .styled-tables th,
+        .styled-tables td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #ddd; /* Add a border to table cells */
+        }
+        .styled-tables tbody tr:last-child td {
+            border-bottom: none; /* Remove border from last row */
+        }
+        .styled-tables thead tr {
+            background-color: #009879;
+            color: #fff;
+        }
+        .styled-tables tbody tr:nth-child(even) {
+            background-color: #f3f3f3;
+        }
+        .styled-tables tbody tr.active-row {
+            font-weight: bold;
+            color: #009879;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbari">
+        <h1>User Monthly Activities Report</h1>
+    </div>
+    <div class="books">
+        <h2>User Information</h2>
+        <h3><strong>Name:</strong> {{ data.username }}</h3>
+        <h3><strong>Email:</strong> {{ data.email }}</h3>
+        <p>This is a monthly report generated for the user of Music Streaming App.</p>
+        <p>This report gives you a brief glimpse of your past month's activities. The songs you listened and missed.</p>
+        <h3>Songs Details</h3>
+    </div>
+    {% for album in data.albums %}
+    <table class="styled-tables">
+        <thead>
+            <tr>
+                <th>Album</th>
+                <th>Artist</th>
+                <th>Language</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="active-row">
+                <td>{{ album.name }}</td>
+                <td>{{ album.artist }}</td>
+                <td>{{ album.language }}</td>
+
+            </tr>
+        </tbody>
+        {% if album.songs %}
+            {% for songs in album.songs %}          
+        <thead>
+            <tr>
+                <th>Song</th>
+                <th>Genre</th>
+                <th>Release Date</th>
+                <th>Rating</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="active-row">
+                <td>{{ songs.name }}</td>
+                <td>{{ songs.genre }}</td>
+                <td>{{ songs.release }}</td>
+                <td>{{ songs.rating }}</td>
+            </tr>
+        </tbody>
+        {% endfor %}
+        {% endif %}
+    </table>
+    {% endfor %}
+    <h4>
+        Warm Regards,
+    </h4>
+    <h4>
+        Music Streaming App
+    </h4>
+</body>
+</html>
+
+

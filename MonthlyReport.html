@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Creator Report</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+        .navbar h1{
+            margin-left: 200px;
+            color:azure;
+        }
+        .book{
+            margin-left: 250px;
+        }
+        .book h3{
+            font-size: 20px;
+        }
+        .book h2{
+            font-size: 40px;
+        }
+        .navbar{
+            background:#009879 ;
+            padding:10px;
+        }
+        h4{
+            margin-left: 250px;
+        }
+        .styled-table {
+    border-collapse: collapse;
+    margin-left:200px;
+    font-size: 0.9em;
+    font-family: sans-serif;
+    min-width: 400px;
+    width: 70%;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+    height:100px;
+     }
+     .styled-table thead tr {
+    background-color: #009879;
+    color: #ffffff;
+    text-align: left;
+}
+.styled-table th,
+.styled-table td {
+    padding: 12px 15px;
+}
+
+.styled-table tbody tr {
+    border-bottom: 1px solid #dddddd;
+}
+
+.styled-table tbody tr:nth-of-type(even) {
+    background-color: #f3f3f3;
+}
+
+.styled-table tbody tr:last-of-type {
+    border-bottom: 2px solid #009879;
+}
+.styled-table tbody tr.active-row {
+    font-weight: bold;
+    color: #009879;
+}
+    </style>
+</head>
+<body>
+    <div class="navbar">
+    <h1>User Monthly Activities Report</h1>
+    </div>
+    <br>
+    <div class="book">
+    <h2>User Information</h2>
+    <h3><strong>Name:</strong> {{ data.username }}</h3>
+    <h3><strong>Email:</strong> {{ data.email }}</h3>
+    <p>This is a monthly report generated for creators in Music Streaming App.</p>
+    <p>This report gives you a breif glimpse of your </p>
+    <P>past months activities.</P>
+    <p>Songs created by you and your fellow creators are shown below</p>
+    <br>
+    <h3>Bookings Details</h3>
+    </div>
+    {% for album in data.albums %}
+
+    <table class="styled-table">
+        <thead>
+            <tr>
+                <th>Album</th>
+                <th>Artist</th>
+                <th>Language</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="active-row">
+                <td>{{ album.name }}</td>
+                <td>{{ album.artist }}</td>
+                <td>{{ album.language }}</td>
+            </tr>
+        </tbody>
+        {% if album.songs %}
+        {% for songs in album.songs %}        
+        <thead>
+            <tr>
+                <th>Song</th>
+                <th>Genre</th>
+                <th>Release Date</th>
+                <th>Rating</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="active-row">
+                <td>{{ songs.name }}</td>
+                <td>{{ songs.genre }}</td>
+                <td>{{ songs.release }}</td>
+                <td>{{ songs.rating }}</td>
+            </tr>
+        </tbody>
+    
+        {% endfor %}
+        {% endif %}
+    </table>
+    {% endfor %}
+
+    <br>
+    <h4>
+        Warm Regards,
+    </h4>
+        <h4>
+      Ticket Booking 
+        </h4>
+
+</body>
+</html>
+

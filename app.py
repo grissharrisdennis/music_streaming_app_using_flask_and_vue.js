@@ -3,7 +3,7 @@ from flask_restful import Resource,Api
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
 from models import User,Role,Song,Album,db,Playlist,UserRating
-from flask_security import SQLAlchemyUserDatastore,Security,roles_required,auth_token_required
+from flask_security import SQLAlchemyUserDatastore,Security,roles_required,roles_accepted,auth_token_required
 import bcrypt
 import csv
 from flask_cors import CORS
@@ -21,10 +21,12 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from jinja2 import Template
-from weasyprint import HTML
+from xhtml2pdf import pisa
 import uuid
 from email import encoders
 from celery.result import AsyncResult
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 from flask_caching import Cache
 
@@ -37,24 +39,159 @@ app.config['SQLALCHEMY_TRACK_MODIFICATONS'] = False
 app.config['WTF_CSRF_ENABLED']=False
 app.config['SECURITY_TOKEN_AUTHENTICATION_HEADER']='Authentication-Token'
 app.config['SECURITY_TOKEN_AUTHENTICATION_KEY'] = 'token'
-# app.config['CELERY_BROKER_URL']='redis://localhost:6379/0'
-# app.config['CELERY_RESULT_BACKEND']='redis://localhost:6379/0'
-# app.config['CACHE_TYPE']='RedisCache'
-# app.config['CACHE_REDIS_HOST']='localhost'
-# app.config['CACHE_REDIS_PORT']='6379'
-# SMTP_SERVER_HOST='localhost'
-# SMTP_SERVER_PORT='1025'
-# SENDER_ADDRESS='griss.harris@gmail.com'
-# SENDER_PASSWORD=''
+app.config['CELERY_BROKER_URL']='redis://localhost:6379/0'
+app.config['CELERY_RESULT_BACKEND']='redis://localhost:6379/0'
+app.config['CACHE_TYPE']='RedisCache'
+app.config['CACHE_REDIS_HOST']='localhost'
+app.config['CACHE_REDIS_PORT']='6379'
+app.config['CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP'] = True
+
+SMTP_SERVER_HOST='localhost'
+SMTP_SERVER_PORT='1025'
+SENDER_ADDRESS='griss.harris@gmail.com'
+SENDER_PASSWORD=''
 db.init_app(app)
 api = Api(app) 
 cache=Cache(app)
 CORS(app, origins='http://localhost:8080',supports_credentials=True)
 user_datastore=SQLAlchemyUserDatastore(db,User,Role)
 app.security = Security(app, user_datastore)
-# celery = make_celery(app)
+celery = make_celery(app)
+
+
+
+
+
+
+def format_message(template_file,data={}):
+    with open(template_file) as file_:
+        template=Template(file_.read())
+        return template.render(data=data)
+    
+def create_pdf_report(data):
+    message = format_message('MonthlyPdfReport.html', data=data)
+    file_name = str(uuid.uuid4()) + ".pdf"
+
+   
+    pdf = BytesIO()
+    pisa_status = pisa.CreatePDF(message, dest=pdf)
+
+    if pisa_status.err:
+       
+        print("PDF generation error!")
+        return None
+    
+    
+    with open(file_name, "wb") as pdf_file:
+        pdf_file.write(pdf.getvalue())
+
+    return file_name
+
+def send_message(to_address,subject,message,attachment_file=None):
+    msg=MIMEMultipart()
+    msg['From']=SENDER_ADDRESS
+    msg['To']=to_address
+    msg['Subject']=subject
+    if attachment_file:
+        filename, data = attachment_file 
+        part = MIMEBase("application", "octet-stream")
+        part.set_payload(data)
+        encoders.encode_base64(part)
+        part.add_header("Content-Disposition", f"attachment; filename={filename}")
+        msg.attach(part)
+    msg.attach(MIMEText(message,"html"))
+    s=smtplib.SMTP(host=SMTP_SERVER_HOST,port=SMTP_SERVER_PORT)
+    s.login(SENDER_ADDRESS,SENDER_PASSWORD)
+    s.send_message(msg)
+    s.quit()
+    return True
+
+
+
+
+
+@celery.task()
+def send_remainder_via_email():
+    users=User.query.all()
+    message=None
+    for user in users:
+        if not  user.is_admin:
+            if user.last_login.date() == datetime.today().date():
+                print(user.username)
+                message=format_message('Reminder.html',data=user.username)
+                send_message(to_address=user.email,
+                    subject="User Reminder",
+                    message=message)
+
+@celery.task()
+def send_monthly_reports():
+    users=User.query.all()
+    albums=Album.query.all()
+    album_list = []  
+    for album in albums:
+        album_json = {
+                'id': album.album_id,
+                'name': album.name,
+                'language': album.language,
+                'artist': album.artist,
+                'songs':[]
+        }
+        if album.songs:
+            for songs in album.songs:
+                song_json={
+                    'id': songs.song_id,
+                    'name': songs.song_name,
+                     'genre': songs.genre,
+                    'artist': songs.artist,
+                    'release': songs.release, 
+                    'image':songs.image,
+                    'audio':songs.audio,
+                    'lyrics':songs.lyrics,
+                    'rating':songs.average_rating
+                }
+                album_json['songs'].append(song_json)
+        album_list.append(album_json)
+        print(album_list)
+    for user in users:
+        if not user.is_admin:
+            print(user.username)
+            data={"id":user.id,
+            "username":user.username,
+                "email":user.email,
+                "albums":album_list,
+            }
+            if user.report=='pdf':
+                pdf_file_name = create_pdf_report(data)  
+                with open(pdf_file_name, "rb") as pdf_file:
+                    send_message(to_address=user.email,
+                        subject="Monthly Report",
+                        message="Hi user,Here is your Monthly Report for your last months activities.",
+                        attachment_file=(pdf_file_name, pdf_file.read()))
+            elif user.report=='html':
+                temp_file=format_message('MonthlyReport.html',data=data)
+                send_message(to_address=user.email,
+                subject="Monthly Report", 
+                message=temp_file,attachment_file=None)     
+    return "report"
+
+@celery.on_after_configure.connect
+def setup_periodic_tasks(sender, **kwargs):
+
+    # sender.add_periodic_task(crontab(hour=18, minute=30), send_remainder_via_email.s(), name='every day evening')
+
+
+    # sender.add_periodic_task(crontab(0, 0, day_of_month='1'), send_monthly_reports.s(), name='1st Day of every month')
+
+     sender.add_periodic_task(30.0, send_monthly_reports.s(), name='1st Day of every month')
+     sender.add_periodic_task(30.0, send_remainder_via_email.s(), name='every day evening')
+
+
+
+
+
 
 class UserLoginAPI(Resource):
+    @cache.cached(timeout=50)
     def post(self):
         data = request.get_json()
         username = data.get('username')
@@ -77,6 +214,7 @@ class UserLoginAPI(Resource):
             return jsonify("NOT USER!!!!!")  
 
 class CreatorLoginAPI(Resource):
+    @cache.cached(timeout=50)
     def post(self):
         data = request.get_json()
         username = data.get('username')
@@ -98,6 +236,7 @@ class CreatorLoginAPI(Resource):
             return jsonify("NOT USER!!!!!") 
 
 class AdminLoginAPI(Resource):
+    @cache.cached(timeout=50)
     def post(self):
         data = request.get_json()
         username = data.get('username')
@@ -192,9 +331,7 @@ class CreatorAPI(Resource):
             user_role = user_datastore.find_or_create_role(name='user',description='user has access')
             creator_role = user_datastore.find_or_create_role(name='creator',description='creator has access')
             user.roles=[user_role,creator_role]
-            # if user_role not in user.roles:
-            #     user.roles.append(user_role)
-            #     return jsonify("Creator Role Added") 
+           
         db.session.commit()
         return jsonify("Creator Successfully Registered")
 
@@ -241,7 +378,8 @@ class SongAPI(Resource):
                 'release': song.release,
                 'image': song.image,
                 'audio':song.audio,
-                'lyrics':song.lyrics
+                'lyrics':song.lyrics,
+                'rating':song.average_rating
             }
     
             song_list.append(song_json)
@@ -250,10 +388,11 @@ class SongAPI(Resource):
     @roles_required('creator')
     def post(self,album_id):
         album=Album.query.filter(Album.album_id == album_id).first()
+        print(album_id)
         name = request.form.get('song_name')
         print(name)
         artist=request.form.get('artist')
-        genre=request.form.get('genre')
+        print(artist)
         release=request.form.get('release')
         print(release)
         if release:
@@ -262,16 +401,21 @@ class SongAPI(Resource):
             except ValueError:
                 print('error')
                 return jsonify({'message': 'Invalid datetime format'}), 400
+        print(release)
+        genre=request.form.get('genre')
+        print(genre)
         image_file = request.files['image']
-        audio_file = request.files['audio']
         img_file = secure_filename(image_file.filename)
-        print(img_file)
         if image_file:
             image_file.save(os.path.join('templates/src/assets/images', img_file))
+        print(img_file)
+        audio_file = request.files['audio']
         aud_file = secure_filename(audio_file.filename)
+        print(aud_file)
         if audio_file:
             audio_file.save(os.path.join('templates/src/assets/audios', aud_file))
         lyrics = request.form.get('lyrics')
+        print(lyrics)
         music = Song(song_name=name, genre=genre, artist=artist, release=release, image=img_file, audio=aud_file, lyrics=lyrics,album_id=album_id)
         db.session.add(music)
         album.songs.append(music)
@@ -279,12 +423,14 @@ class SongAPI(Resource):
         return jsonify({"message":"Song successfully added"})
     
     @roles_required('creator')
-    def put(self,album_id,song_id):
+    def put(self,song_id):
         song=Song.query.filter(Song.song_id == song_id).first()
         name = request.form.get('song_name')
         print(name)
         artist=request.form.get('artist')
+        print(artist)
         genre=request.form.get('genre')
+        print(genre)
         release=request.form.get('release')
         print(release)
         if release:
@@ -293,36 +439,39 @@ class SongAPI(Resource):
             except ValueError:
                 print('error')
                 return jsonify({'message': 'Invalid datetime format'}), 400
+        print(release)
+        lyrics = request.form.get('lyrics')
+        print(lyrics)
         image_file = request.files['image']
-        audio_file = request.files['audio']
+        print(image_file)
         img_file = secure_filename(image_file.filename)
-        print(img_file)
+        
         if image_file:
             image_file.save(os.path.join('templates/src/assets/images', img_file))
-        aud_file = secure_filename(audio_file.filename)
-        if audio_file:
-            audio_file.save(os.path.join('templates/src/assets/audios', aud_file))
-        lyrics = request.form.get('lyrics')
+        print(img_file)
+        
         try:
             song.image=img_file
-            song.audio=aud_file
             song.release=release
             song.artist=artist
             song.genre=genre
             song.name=name
+            song.lyrics=lyrics
         except:
             return {'message': 'An error occurred while updating the song'}, 500
         db.session.commit()
         return jsonify({"message":"Song successfully added"})
 
-    @roles_required('creator','admin')
+    @roles_accepted('creator','admin')
     def delete(self, song_id):
         song=Song.query.filter(Song.song_id == song_id).first()
         if song is None:
             return jsonify({"message":"Song not found"}),404
         db.session.delete(song)
         db.session.commit()
-        return "", 200
+        return jsonify({"message":"Song successfully deleted"})
+    
+    
 
 class AlbumAPI(Resource):
     @cache.cached(timeout=50)
@@ -354,6 +503,7 @@ class AlbumAPI(Resource):
                         'image':songs.image,
                         'audio':songs.audio,
                         'lyrics':songs.lyrics,
+                        'rating':songs.average_rating
                     }
                     album_json['songs'].append(song_json)
             album_list.append(album_json)
@@ -378,6 +528,7 @@ class AlbumAPI(Resource):
     def put(self, album_id):
         album = Album.query.filter(Album.album_id == album_id).first()
         data=request.get_json()
+        
         name = data.get('album_name')
         print(name)
         artist = data.get('artist')
@@ -391,21 +542,23 @@ class AlbumAPI(Resource):
             return {'message': 'An error occurred while updating the album'}, 500
         return jsonify({"message":"Album successfully updated"})
 
-    
-
-    @roles_required('creator','admin')
+    @roles_accepted('admin','creator')
     def delete(self, album_id):
         album = Album.query.filter(Album.album_id == album_id).first()
+        print(album_id)
         if album is None:
             return jsonify({"message":"Album not found"}),404
         for sh in album.songs:
-            for songs in sh:
-                db.session.delete(songs)
+            try:
+                db.session.delete(sh)
+            except len(sh)>1:
+                for songs in sh:
+                    db.session.delete(songs)
             db.session.commit()
         db.session.delete(album)
         db.session.commit()
-        return "", 200
-
+        return jsonify({"message":"Album successfully deleted"})
+    
 class PlaylistAPI(Resource):
     @cache.cached(timeout=50)
     def get(self, playlist_id=None):
@@ -484,6 +637,7 @@ class PlaylistAPI(Resource):
         return jsonify({'message': 'Playlist deleted successfully', 'playlist_id': playlist_id})
     
 class SearchAPI(Resource):
+    @cache.cached(timeout=50)
     @auth_token_required
     @roles_required('user')
     def post(self):
@@ -514,6 +668,7 @@ class SearchAPI(Resource):
         return jsonify({"name": isname, "id": id, "message": "Search is successful"})
 
 class RatingAPI(Resource):
+    
     def post(self, id, song_id):
         data = request.get_json()
         rating = data.get('rating')
@@ -536,13 +691,49 @@ class RatingAPI(Resource):
         
         return jsonify({"message": 'Rating updated', "rating": rating, "average_rating": average_rating})
 
+class CountAPI(Resource):
+    @cache.cached(timeout=50)
+    def get(self):
+        song_count = db.session.query(Song).count()
+        album_count = db.session.query(Album).count()
+        user_count = db.session.query(User).count()
+        creator_count = db.session.query(User).filter(User.playlists.any()).count()
 
+        counts = {
+            'songCount': song_count,
+            'albumCount': album_count,
+            'userCount': user_count,
+            'creatorCount': creator_count
+        }
+        return jsonify(counts)
+    
+class SummaryAPI(Resource):
+    @cache.cached(timeout=50)
+    def get(self):
+        x = []
+        y = []
+        img=BytesIO()
+        songs=Song.query.all()
+        for song in songs:
+            x.append(song.song_name)
+            y.append(song.average_rating)
+        plt.bar(x, y)
+        plt.xlabel('Track')
+        plt.ylabel('Rating')
+        plt.title('Song Ratings')
+        plt.savefig(img,format='png')
+        plt.close()
+        img.seek(0)
+        plot_url = base64.b64encode(img.getvalue()).decode('utf8')
+        return jsonify(plot_url)
 
+api.add_resource(SummaryAPI,'/api/generate_summary')
+api.add_resource(CountAPI,'/api/get_counts')
 api.add_resource(RatingAPI,'/api/post/<int:id>/<int:song_id>/rating')
 api.add_resource(SearchAPI,'/api/search')
 api.add_resource(PlaylistAPI,'/api/get/playlist','/api/<int:user_id>/post/playlist','/api/delete/<int:playlist_id>/playlist')
 api.add_resource(AlbumAPI,'/api/get/album','/api/post/album','/api/put/<int:album_id>/album','/api/delete/<int:album_id>/album')
-api.add_resource(SongAPI,'/api/get/song','/api/<int:song_id>/get/song','/api/<int:album_id>/post/song','/api/<int:album_id>/<int:song_id>/put/song','/api/<int:song_id>/delete/song')
+api.add_resource(SongAPI,'/api/get/song','/api/<int:song_id>/get/song','/api/<int:album_id>/post/song','/api/<int:song_id>/put/song','/api/<int:song_id>/delete/song')
 api.add_resource(UserAPI, '/api/<int:id>/user','/api/user')
 api.add_resource(CreatorAPI, '/api/<int:id>/creator','/api/creator')
 api.add_resource(AdminAPI,'/api/<int:id>/admin')
