@@ -2,51 +2,33 @@
   <div class="search">
   <header>
     <ul class="nav_links">
-      <li><h2>Search Results</h2></li>
-      <li><a ><router-link  :to="{ name: 'UserDashboard', params: { id: this.$route.query.user_id}}">UserDashboard</router-link></a></li>
-      <li><a @click="logout()">Logout</a></li>
+      <li><h1>Search Results</h1></li>
+      <li><a ><router-link  :to="{ name: 'UserDashboard', params: { id: this.$route.query.user_id}}"><button class="slo">User Dashboard</button></router-link></a></li>
+      
     </ul>
 </header>
-    <div class="boxes" v-for="venues in venue"   :key="venues.id">
-      <div class="ven" v-if="this.$route.params.id==venues.id">
-        <h1 class="name">{{ venues.name }}</h1>
+    <div class="boxes" v-for="albums in album"   :key="albums.album_id">
+      <div class="ven" v-if="this.$route.query.name==albums.name">
+        <h1 class="name">{{ albums.name }}</h1>
         <br>
-        <div class="carde" v-for="shows in venues.shows" :key="shows.show_id">
-        <img v-bind:src="getImageUrl(shows.image_file)">
-        <router-link   :to="{ name: 'BookingPage', params: { venue_id:this.$route.params.id,show_id: shows.id, user_id:this.$route.query.user_id }}">
-          <button class="cards-btn" v-bind:disabled="houseful(venues.capacity) === true">
-            {{ venues.capacity < 1 ? 'Houseful' : 'Book' }}
-          </button>
-        </router-link>
-        <h2>{{ shows.name }}</h2>
+        <div class="carde" v-for="songs in albums.songs" :key="songs.song_id">
+        <img :src="getImageUrl(songs.image)">
+        <h2>{{ songs.name }}</h2>
+        <h2>ft.{{ songs.artist }}</h2>
         </div>
         <br>
       </div>
     </div>
-    <div class="boxes" v-if="show" >
-      <div class="carde" v-for="shows in show" :key="shows.id">
-          <img v-bind:src="getImageUrl(shows.image_file)"  alt="Description of the image"> 
+    <div class="boxes" v-for="songs in song" :key="songs.song_id">
+      <div class="carde" v-if="this.$route.query.name==songs.name">
+          <img :src="getImageUrl(songs.image)"  alt="Description of the image"> 
           <div class="texts">
-            <h2>{{ shows.name }}</h2>
-            <div class="showven" v-for="venuess in shows.venues" :key="venuess.id">
-              <router-link  :to="{ name: 'BookingPage', params: { venue_id:venuess.id,show_id: shows.id, user_id:this.$route.query.user_id }}"><button class="cards-btn">Book</button></router-link>
-            </div>
+            <h2>{{ songs.name }}</h2>
+            <h2>ft. {{ songs.artist }}</h2>
           </div>
       </div>
     </div>
-    <!-- <div class="boxes" v-if="show" >
-      {{ show.name }}
-      <div class="carde" >
-      <img v-bind:src="getImageUrl(show.image_file)"  alt="Description of the image"> 
-        <div class="text">
-          <h2>{{ show.name }}</h2>
-          <div class="showven" v-for="venuess in show.venues" :key="venuess.id">
-          <router-link  :to="{ name: 'BookingPage', params: { venue_id:venuess.id,show_id: this.$route.params.id, user_id:this.$route.query.user.id }}"><button class="btn">Book</button></router-link>
-        </div>
-      </div>
-        <br>
-      </div>
-    </div> -->
+   
   </div>
 </template>
 
@@ -56,84 +38,75 @@ export default {
     data(){
       return {
       user: null,
-      venue:null,
-      show:null,
+      album:null,
+      song:null,
     };
     },
   mounted() {
-    this.fetchVenue();
-    this.fetchShow();
+    this.fetchAlbum();
+    this.fetchSong();
+    console.log(this.$route.params.name)
   },
   methods:{
-    houseful(capacity){
-      console.log(capacity)
-      if (capacity <= 0 || !Number.isInteger(capacity)) {
-        return true;
-      } else {
-        return false;
-      }
+
+    getImageUrl(image) {
+      console.log(image)
+      return require(`../assets/images/${image}`)
     },
-    getImageUrl(imageFile) {
-      console.log(imageFile)
-      return require(`../assets/images/${imageFile}`)
-    },
-    fetchVenue(){
-      fetch(`http://127.0.0.1:5000/api/get/venue`, {
-        method: 'GET',
-        headers: {
-        'Content-Type': 'application/json',
-        'Authentication-Token': localStorage.getItem('token'),
-        }
-      })
-        .then(response => {
-          if (response.ok) {
-            console.log(response)
-            return response.json();
-          } else {
-            throw new Error('Network response was not OK');
-          }
-        })
-        .then(result => {
-          console.log(result); 
-          if (result) {
-            this.venue = result;
-          }
-        })
-        .catch(error => {
-          console.error(error);
-          this.error = error;
-        });
-    },
-    fetchShow(){
-      fetch(`http://127.0.0.1:5000/api/${this.$route.params.id}/get/show`, {
-        method: 'GET',
-        headers: {
-        'Content-Type': 'application/json',
-        'Authentication-Token': localStorage.getItem('token'),
-        }
-      })
-        .then(response => {
-          if (response.ok) {
-            console.log(response)
-            return response.json();
-          } else {
-            throw new Error('Network response was not OK');
-          }
-        })
-        .then(result => {
-          console.log(result); 
-          if (result) {
-            this.show = result;
-            console.log(this.show)
-            const show = this.show;
-            console.log(show)
-          }
-        })
-        .catch(error => {
-          console.error(error);
-          this.error = error;
-        });
-    },
+    fetchAlbum(){
+          fetch(`http://127.0.0.1:5000/api/get/album`, {
+            method: 'GET',
+            headers: {
+            'Content-Type': 'application/json',
+            'Authentication-Token': localStorage.getItem('token'),
+            }
+          })
+            .then(response => {
+              if (response.ok) {
+                console.log(response)
+                return response.json();
+              } else {
+                throw new Error('Network response was not OK');
+              }
+            })
+            .then(result => {
+              console.log(result); 
+              if (result) {
+                this.album = result;
+              }
+            })
+            .catch(error => {
+              console.error(error);
+              this.error = error;
+            });
+        },
+    fetchSong(){
+          fetch(`http://127.0.0.1:5000/api/get/song`, {
+            method: 'GET',
+            headers: {
+            'Content-Type': 'application/json',
+            'Authentication-Token': localStorage.getItem('token'),
+            }
+          })
+            .then(response => {
+              if (response.ok) {
+                console.log(response)
+                return response.json();
+              } else {
+                throw new Error('Network response was not OK');
+              }
+            })
+            .then(result => {
+              console.log(result); 
+              if (result) {
+                this.song = result;
+              }
+            })
+            .catch(error => {
+              console.error(error);
+              this.error = error;
+            });
+        },
     logout() {
       // Send the logout request to the server
       fetch(' http://127.0.0.1:5000/api/logout', {
@@ -181,6 +154,7 @@ export default {
   width:300px;
   align-items: center;
   text-align: center;
+  margin-top: 20px;
   margin-left: 30px;
   margin-bottom: 40px;
   border:1px solid grey;

@@ -1,9 +1,9 @@
 <template>
   <NavBar></NavBar> 
   <div class="home">
-    <img src="../assets/ani.jpg">
-    <img src="../assets/kk.jpg">
-    <img src="../assets/chitra.jpg">
+    <img src="../assets/y.jpg" class="home-img" >
+    <img src="../assets/od.jpg" class="home-img">
+    <img src="../assets/bt.jpg" class="home-img">
   </div>
 </template>
 
@@ -16,7 +16,7 @@ export default {
   },
 }
 </script>
-<style>
+<style scoped>
 * {
   margin: 0;
   padding: 0;
@@ -27,6 +27,7 @@ export default {
   width: 100%;
   position: relative;
 }
+
 @keyframes fade {
   0%{
     opacity:1;
@@ -41,7 +42,7 @@ export default {
     opacity: 1;
   }
 }
-img{
+.home-img{
   width:100%;
   height:100%;
   object-fit: cover;
@@ -50,13 +51,13 @@ img{
   left:0;
   animation:fade 9s ease-in-out infinite alternate;
 }
-img:nth-of-type(1){
+.home-img:nth-of-type(1){
   animation-delay:0s;
 }
-img:nth-of-type(2){
+.home-img:nth-of-type(2){
   animation-delay:3s;
 }
-img:nth-of-type(3){
+.home-img:nth-of-type(3){
   animation-delay:6s;
 }
 </style>

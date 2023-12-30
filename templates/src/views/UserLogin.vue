@@ -1,7 +1,9 @@
 <template>
   <NavBar></NavBar>
-  <div class="login-dark">
-    
+  <div class="user-login-dark">
+    <img src="../assets/er.jpg" class="user-login-dark-img">
+    <img src="../assets/ra.jpg" class="user-login-dark-img">
+    <img src="../assets/ar.jpg" class="user-login-dark-img">
   <form @submit.prevent="login">
     <br>
       <h5>Login</h5>
@@ -22,9 +24,8 @@
       <br>
       <button type="log-in-button" >Log In</button>
       <br>
-      <br>
       <h4>Not Registered</h4>
-      <a><router-link to="/register">Sign Up</router-link></a> 
+      <h4><router-link class="lie" to="/register">Sign Up</router-link></h4>
     </form>
   </div>
   
@@ -50,7 +51,7 @@ export default {
         password: this.password,
       };
 
-      fetch('http://127.0.0.1:5000/api/login', {
+      fetch('http://127.0.0.1:5000/api/user/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -68,9 +69,6 @@ export default {
           if (result.message === 'User Successfully Logged In') {
             localStorage.setItem('token', result.token);
             this.$router.push(`/${result.id}/user/dashboard`);
-          } else if (result.message === 'Admin Successfully Logged In') {
-            localStorage.setItem('token', result.token);
-            this.$router.push(`/${result.id}/admin/dashboard`);
           }
         })
         .catch(error => {
@@ -82,19 +80,38 @@ export default {
 
 </script>
 
-<style>
- .login-dark {
-  height:800px;
-  background: url('../assets/od.jpg'),url('../assets/lm.jpg'),url('../assets/ar.jpg');
-  background-repeat: no-repeat,no-repeat;
-  padding: 15px;
-  background-position: left,center,right;
-  background-size: contain;
-  
+<style scoped>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+ .user-login-dark {
+  height: 100vh;
+  width: 100%;
+  position: relative;
 }
-.login-dark form {
+.user-login-dark-img{
+  width:100%;
+  height:100%;
+  object-fit: cover;
+  position: absolute;
+  top:0;
+  left:0;
+  animation:fade 9s ease-in-out infinite alternate;
+}
+.user-login-dark-img:nth-of-type(1){
+  animation-delay:0s;
+}
+.user-login-dark-img:nth-of-type(2){
+  animation-delay:3s;
+}
+.user-login-dark-img:nth-of-type(3){
+  animation-delay:6s;
+}
+.user-login-dark form {
   width: 500px;
-  height:600px;
+  height:500px;
   padding: 20px;
   position: static;
   border: 1px solid #ccc;
@@ -104,12 +121,21 @@ export default {
   position: relative;
   top: 140px;
 }
-.login-dark h5{
+.user-login-dark h5{
   color:#fff;
   font-size:40px;
 }
 .h2{
   position:relative
+}
+.user-login-dark h4{
+  font-size:15px;
+  color:black;
+}
+.lie{
+  text-decoration:none;
+  font-size:20px;
+  color:#FFFFF0;
 }
 .input-group {
     margin-bottom: 15px;
@@ -122,7 +148,7 @@ export default {
   }
   
   .input-group input {
-    width: 100%;
+    width: 60%;
     padding: 10px;
     font-size: 16px;
     border-radius: 5px;

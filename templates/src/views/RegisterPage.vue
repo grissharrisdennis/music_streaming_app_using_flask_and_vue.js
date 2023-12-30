@@ -1,36 +1,31 @@
 <template>
   <NavBar></NavBar>
   <div class="register">
-    
+      <img src="../assets/mj.jpg" class="register-img">
+      <img src="../assets/e.jpg" class="register-img">
+      <img src="../assets/cs.png" class="register-img">
     <div class="register-box">
-      <form class="mx-1 mx-md-4"> 
-        <br>    
+      <form class="mx-1 mx-md-4">   
         <h5>Sign Up</h5>
     <br>
     <br>
-    <br>
-
     <div class="input-group">
       <label for="username">Username</label>
       <input type="username" id="username" v-model="username" placeholder="Enter your username">
     </div>
-    <br>
     <br>
     <div class="input-group">
       <label for="password">Password</label>
       <input type="password" id="password" v-model="password" placeholder="Enter your password">
     </div>
     <br>
-    <br>
     <div class="input-group">
       <label for="email">Email</label>
       <input type="email" id="email" v-model="email" placeholder="Enter your email">
     </div>
     <br>
-    <br>
     <div class="input-group">
       <label>Select The Format For Monthly Reports:</label>
-      <br>
       <fieldset>
         <legend>
     <label for="pdf">PDF</label>
@@ -108,19 +103,21 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
 .register {
-  height:900px;
-  background: url('../assets/rd.jpg'),url('../assets/e.jpg'),url('../assets/atif.jpg');
-  background-repeat: no-repeat,no-repeat;
-  padding: 15px;
-  background-position: right,center,left;
-  background-size: contain;
-  
+  height: 100vh;
+  width: 100%;
+  position: relative;
 }
+
 .register-box form{
     width: 500px;
-    height:700px;
+    height:600px;
     padding: 20px;
     position: static;
     border: 1px solid #ccc;
@@ -128,9 +125,27 @@ export default {
     margin: 0 auto;
     background: #283c86;
     position: relative;
-    top: 140px;
+    top: 100px;
+    bottom:15px;
   }
-  
+.register-img{
+  width:100%;
+  height:100%;
+  object-fit: cover;
+  position: absolute;
+  top:0;
+  left:0;
+  animation:fade 9s ease-in-out infinite alternate;
+}
+.register-img:nth-of-type(1){
+  animation-delay:0s;
+}
+.register-img:nth-of-type(2){
+  animation-delay:3s;
+}
+.register-img:nth-of-type(3){
+  animation-delay:6s;
+}
   .register-box h5 {
   color:#fff;
   font-size:40px;
@@ -166,7 +181,7 @@ export default {
   }
   
   .input-group input {
-    width: 100%;
+    width: 50%;
     padding: 10px;
     font-size: 16px;
     border-radius: 5px;
